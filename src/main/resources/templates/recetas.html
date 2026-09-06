@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Recetas')}"></head>
+<body>
+    <nav th:replace="~{fragments/layout :: nav}"></nav>
+
+    <main class="container">
+        <h1>Sugerencias de recetas</h1>
+
+        <p th:unless="${iaDisponible}" class="info">
+            La IA no está configurada todavía (falta <code>ANTHROPIC_API_KEY</code>).
+            Mientras tanto verás una sugerencia básica basada en lo que caduca antes.
+        </p>
+
+        <form th:action="@{/recetas}" method="get" class="form-inline">
+            <label>
+                Horizonte (días)
+                <input type="number" name="dias" th:value="${dias}" min="1" max="14">
+            </label>
+            <button type="submit" class="button">Actualizar</button>
+        </form>
+
+        <div class="card-texto">
+            <p th:text="${sugerencia}">Sugerencia</p>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inicio')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<main class="container">
+    <h1>Hola 👋</h1>
+
+    <div class="cards">
+        <div class="card">
+            <span class="card-number" th:text="${totalAlimentos}">0</span>
+            <span class="card-label">alimentos en inventario</span>
+        </div>
+        <div class="card">
+            <span class="card-number" th:text="${pendientesCompra}">0</span>
+            <span class="card-label">pendientes en la lista de compra</span>
+        </div>
+        <div class="card" th:classappend="${#lists.size(proximosACaducar) > 0} ? 'card-warning' : ''">
+            <span class="card-number" th:text="${#lists.size(proximosACaducar)}">0</span>
+            <span class="card-label">caducan en los próximos 3 días</span>
+        </div>
+    </div>
+
+    <section th:if="${#lists.size(avisos) > 0}">
+        <h2>⚠️ Próximos a caducar</h2>
+        <ul class="lista-avisos">
+            <li th:each="a : ${avisos}" class="aviso">
+                <div class="aviso-texto">
+                    <strong th:text="${a.nombre}">Nombre</strong>
+                    — <span th:text="${a.zona}">Zona</span>
+                    — caduca <span th:text="${a.fechaCaducidad}">fecha</span>
+                </div>
+                <div class="aviso-pregunta">
+                    <span>¿Añadir a la lista de la compra?</span>
+                    <form th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" style="display:inline;">
+                        <input type="hidden" name="volver" value="/">
+                        <button type="submit" class="button-si">Sí</button>
+                    </form>
+                    <button type="button" class="button-no" onclick="this.closest('.aviso').remove()">No</button>
+                </div>
+            </li>
+        </ul>
+        <a th:href="@{/recetas}" class="button">Ver sugerencias de recetas</a>
+    </section>
+</main>
+</body>
+</html>

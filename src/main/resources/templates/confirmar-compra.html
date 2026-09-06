@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Confirmar compra')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<main class="container">
+    <h1>Confirmar compra</h1>
+
+    <p>
+        <strong th:text="${item.nombre}">Producto</strong>
+        <span th:text="' - ' + ${item.cantidad} + ' ' + ${item.unidad}"> - 1 unidad</span>
+    </p>
+
+    <form th:action="@{/lista-compra/{id}/confirmar-compra(id=${item.id})}" method="post" class="form-grid">
+        <label>
+            Fecha de caducidad
+            <input type="date" name="fechaCaducidad">
+        </label>
+
+        <button type="submit" class="button">Añadir al inventario</button>
+        <a th:href="@{/lista-compra}" class="button button-secundario">Cancelar</a>
+    </form>
+</main>
+</body>
+</html>

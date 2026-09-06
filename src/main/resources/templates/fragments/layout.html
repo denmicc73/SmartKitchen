@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${titulo} + ' · Smart Kitchen'">Smart Kitchen</title>
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body>
+<nav th:fragment="nav" class="navbar">
+    <div class="navbar-brand">🍽️ Smart Kitchen</div>
+    <button type="button" class="navbar-toggle" onclick="document.querySelector('.navbar-links').classList.toggle('open')" aria-label="Abrir menú">☰</button>
+    <div class="navbar-links">
+        <a th:href="@{/}">Inicio</a>
+        <a th:href="@{/inventario}">Inventario</a>
+        <a th:href="@{/lista-compra}">Lista de compra</a>
+        <a th:href="@{/recetas}">Recetas</a>
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+            <button type="submit" class="link-button">Salir</button>
+        </form>
+    </div>
+</nav>
+</body>
+</html>

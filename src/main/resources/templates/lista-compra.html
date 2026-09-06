@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Lista de compra')}"></head>
+<body>
+    <nav th:replace="~{fragments/layout :: nav}"></nav>
+
+    <main class="container">
+        <h1>Lista de la compra</h1>
+
+        <h2>Pendientes</h2>
+        <ul class="lista-checks">
+            <li th:each="item : ${pendientes}">
+                <form th:action="@{/lista-compra/{id}/marcar(id=${item.id})}" method="post" style="display:inline;">
+                    <input type="hidden" name="comprado" value="true">
+                    <button type="submit" class="checkbox-button">☐</button>
+                </form>
+                <span th:text="${item.nombre} + ' — ' + ${item.cantidad} + ' ' + ${item.unidad}">Item</span>
+                <form th:action="@{/lista-compra/{id}/eliminar(id=${item.id})}" method="post" style="display:inline;">
+                    <button type="submit" class="link-button">✕</button>
+                </form>
+            </li>
+            <li th:if="${#lists.isEmpty(pendientes)}">No hay nada pendiente. ¡Buen trabajo!</li>
+        </ul>
+
+        <h2>Comprados</h2>
+        <ul class="lista-checks">
+            <li th:each="item : ${comprados}">
+                <form th:action="@{/lista-compra/{id}/marcar(id=${item.id})}" method="post" style="display:inline;">
+                    <input type="hidden" name="comprado" value="false">
+                    <button type="submit" class="checkbox-button">☑</button>
+                </form>
+                <span class="tachado" th:text="${item.nombre} + ' — ' + ${item.cantidad} + ' ' + ${item.unidad}">Item</span>
+            </li>
+        </ul>
+
+        <h2>Añadir a la lista</h2>
+        <form th:action="@{/lista-compra}" th:object="${nuevoItem}" method="post" class="form-grid">
+            <label>
+                Nombre
+                <input type="text" th:field="*{nombre}" required>
+            </label>
+            <label>
+                Cantidad
+                <input type="number" step="0.01" th:field="*{cantidad}" value="1">
+            </label>
+            <label>
+                Unidad
+                <input type="text" th:field="*{unidad}" value="unidad">
+            </label>
+            <button type="submit" class="button">Añadir</button>
+        </form>
+    </main>
+</body>
+</html>
