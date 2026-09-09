@@ -10,5 +10,14 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+
+# El servidor embebido escucha en SERVER_PORT (por defecto 8080). No hay ningun
+# sitio que lo cambie, asi que el puerto real es 8080: es el que hay que poner
+# en "Ports Exposes" de Coolify.
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+# IMPORTANTE en produccion: hay que pasar  SPRING_PROFILES_ACTIVE=prod  como
+# variable de entorno. Sin ella la app arranca en perfil "dev" con base de
+# datos H2 dentro del contenedor y pierde TODOS los datos en cada redeploy.
+# La lista completa de variables esta en DEPLOY.md.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
