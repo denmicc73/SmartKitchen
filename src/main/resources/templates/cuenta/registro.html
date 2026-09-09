@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear cuenta · Smart Kitchen</title>
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <h1>🍽️ Smart Kitchen</h1>
+        <p class="subtitle">Crear una cuenta para la casa</p>
+
+        <form th:action="@{/registro}" method="post">
+            <label class="field">
+                Usuario
+                <input type="text" name="username" th:value="${username}" required autofocus
+                       autocomplete="username" minlength="3" maxlength="40">
+            </label>
+            <label class="field">
+                Correo
+                <input type="email" name="email" th:value="${email}" required
+                       autocomplete="email" placeholder="tucorreo@ejemplo.com">
+            </label>
+            <label class="field">
+                Contraseña
+                <input type="password" name="password" required
+                       autocomplete="new-password" minlength="8">
+            </label>
+            <button type="submit" class="btn btn--primary btn--block btn--lg">Crear cuenta</button>
+        </form>
+
+        <p th:if="${error}" class="error" th:text="${error}"></p>
+        <p class="subtitle" style="margin-top:1.2rem">
+            Te enviaremos un correo para confirmar la dirección.
+        </p>
+        <p class="login-links">
+            <a th:href="@{/login}">Ya tengo cuenta</a>
+        </p>
+    </div>
+</body>
+</html>

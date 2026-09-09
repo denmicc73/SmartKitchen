@@ -32,7 +32,17 @@ services:
       DB_PASS: ${DB_PASS}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-Smart Kitchen <no-reply@smart-kitchen.local>}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      UPLOADS_DIR: /app/data/uploads
+    volumes:
+      - uploads_data:/app/data/uploads
     ports:
       - "8080:8080"
     networks:
@@ -41,6 +51,7 @@ services:
 
 volumes:
   mysql_data:
+  uploads_data:
 
 networks:
   internal:

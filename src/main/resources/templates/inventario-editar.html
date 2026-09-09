@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/layout :: head('Editar producto')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: nav('inventario')}"></div>
+
+<main class="container">
+    <h1>✏️ Editar producto</h1>
+
+    <form th:action="@{/inventario/{id}(id=${alimento.id})}" th:object="${alimento}" method="post"
+          class="card form-grid" style="margin-top:1rem">
+        <input type="hidden" th:field="*{id}">
+        <label class="field field--wide">
+            <span>Nombre</span>
+            <input type="text" th:field="*{nombre}" required>
+        </label>
+        <label class="field">
+            <span>Ubicación</span>
+            <select th:field="*{zona}" required>
+                <option th:each="z : ${zonas}" th:value="${z}" th:text="${z.emoji} + ' ' + ${z.etiqueta}">Zona</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>Categoría</span>
+            <select th:field="*{categoria}">
+                <option th:each="c : ${categorias}" th:value="${c}" th:text="${c.emoji} + ' ' + ${c.etiqueta}">Categoría</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>Cantidad</span>
+            <input type="number" step="0.01" min="0" th:field="*{cantidad}">
+        </label>
+        <label class="field">
+            <span>Unidad</span>
+            <input type="text" th:field="*{unidad}">
+        </label>
+        <label class="field">
+            <span>Stock mínimo (0 = sin control)</span>
+            <input type="number" step="0.01" min="0" th:field="*{stockMinimo}">
+        </label>
+        <label class="field">
+            <span>Caduca el</span>
+            <input type="date" th:field="*{fechaCaducidad}">
+        </label>
+        <label class="field">
+            <span>Código NFC / QR</span>
+            <input type="text" th:field="*{codigoNfc}">
+        </label>
+        <label class="field field--wide">
+            <span>Notas</span>
+            <input type="text" th:field="*{notas}" maxlength="500">
+        </label>
+        <div class="field field--wide btn-row">
+            <button type="submit" class="btn btn--primary btn--lg">Guardar cambios</button>
+            <a th:href="@{/inventario}" class="btn">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

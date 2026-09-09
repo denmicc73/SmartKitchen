@@ -1,48 +1,144 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head th:replace="~{fragments/layout :: head('Inicio')}"></head>
 <body>
-<nav th:replace="~{fragments/layout :: nav}"></nav>
+<div th:replace="~{fragments/layout :: nav('inicio')}"></div>
 
 <main class="container">
-    <h1>Hola 👋</h1>
 
-    <div class="cards">
-        <div class="card">
-            <span class="card-number" th:text="${totalAlimentos}">0</span>
-            <span class="card-label">alimentos en inventario</span>
+    <h1 th:text="${usuarioActual != null} ? ('Hola, ' + ${usuarioActual.nombreParaMostrar} + ' 👋') : 'Hola 👋'">Hola 👋</h1>
+    <p class="muted small">Tu cocina de un vistazo</p>
+
+    <!-- ===== 🍽️ Hoy ===================================================== -->
+    <section class="card card--pad-lg" style="margin-top:1rem">
+        <div class="card__head">
+            <h2 class="card__title" style="margin:0">🍽️ Hoy</h2>
+            <a class="card__link" th:href="@{/recetas}">Ver recetas</a>
         </div>
-        <div class="card">
-            <span class="card-number" th:text="${pendientesCompra}">0</span>
-            <span class="card-label">pendientes en la lista de compra</span>
+
+        <div th:if="${recetaHoy != null}" class="row" style="align-items:flex-start; flex-wrap:nowrap; gap:1rem">
+            <div class="recipe-card__media"
+                 style="width:92px; height:72px; border-radius:12px; flex-shrink:0; font-size:1.8rem">
+                <img th:if="${recetaHoy.imagenUrl != null}" th:src="${recetaHoy.imagenUrl}" alt="">
+                <span th:if="${recetaHoy.imagenUrl == null}">🍲</span>
+            </div>
+            <div class="list__main">
+                <div class="list__title" style="font-size:1.05rem" th:text="${recetaHoy.nombre}">Receta</div>
+                <div class="meta-row">
+                    <span class="pill" th:text="'⏱ ' + ${recetaHoy.tiempoTexto}">30 min</span>
+                    <span class="pill" th:text="${recetaHoy.dificultad}">Fácil</span>
+                    <span class="pill" th:text="'👥 ' + ${recetaHoy.personas}">2</span>
+                </div>
+                <div class="tags" th:if="${!#lists.isEmpty(recetaHoy.ingredientes)}">
+                    <span class="tag" th:each="ing : ${recetaHoy.ingredientes}" th:text="${ing.nombre}">ingrediente</span>
+                </div>
+                <a class="btn btn--primary" style="margin-top:.8rem"
+                   th:href="@{/recetas/{id}(id=${recetaHoy.id})}">Abrir receta →</a>
+            </div>
         </div>
-        <div class="card" th:classappend="${#lists.size(proximosACaducar) > 0} ? 'card-warning' : ''">
-            <span class="card-number" th:text="${#lists.size(proximosACaducar)}">0</span>
-            <span class="card-label">caducan en los próximos 3 días</span>
+
+        <div th:if="${recetaHoy == null}" class="empty" style="padding:1.4rem 0">
+            <span class="empty__icon">🍽️</span>
+            Aún no hay recetas guardadas.
+            <a th:href="@{/recetas/nueva}">Añade la primera</a>.
+        </div>
+    </section>
+
+    <!-- ===== 🛒 Compra ================================================== -->
+    <h2>🛒 Compra</h2>
+    <div class="grid grid--tiles">
+        <a class="tile" th:href="@{/lista-compra}">
+            <span class="tile__num" th:text="${pendientesCompra}">0</span>
+            <span class="tile__label">pendientes</span>
+        </a>
+        <a class="tile" th:href="@{/lista-compra}"
+           th:classappend="${#lists.size(prioritariosCompra) > 0} ? 'tile--warn'">
+            <span class="tile__num" th:text="${#lists.size(prioritariosCompra)}">0</span>
+            <span class="tile__label">prioritarios</span>
+        </a>
+    </div>
+    <div class="btn-row">
+        <a class="btn btn--primary" th:href="@{/lista-compra}">+ Añadir a la compra</a>
+        <a class="btn" th:href="@{/lista-compra}">Ver lista</a>
+    </div>
+    <ul class="list" th:if="${!#lists.isEmpty(prioritariosCompra)}">
+        <li th:each="it : ${prioritariosCompra}">
+            <div class="list__main">
+                <div class="list__title" th:text="${it.nombre}">Producto</div>
+                <div class="list__sub"
+                     th:text="${it.cantidad} + ' ' + ${it.unidad} + ' · ' + ${it.categoria}">1 ud</div>
+            </div>
+            <span class="pill pill--warn" th:text="${it.prioridad}">ALTA</span>
+        </li>
+    </ul>
+
+    <!-- ===== 🧊 Inventario ============================================= -->
+    <h2>🧊 Inventario</h2>
+    <div class="grid grid--tiles">
+        <a class="tile tile--ok" th:href="@{/inventario}">
+            <span class="tile__num" th:text="${numDisponibles}">0</span>
+            <span class="tile__label">disponibles</span>
+        </a>
+        <a class="tile" th:href="@{/inventario}"
+           th:classappend="${#lists.size(bajoStock) > 0} ? 'tile--warn'">
+            <span class="tile__num" th:text="${#lists.size(bajoStock)}">0</span>
+            <span class="tile__label">poco stock</span>
+        </a>
+        <a class="tile" th:href="@{/inventario}"
+           th:classappend="${#lists.size(proximosACaducar) > 0} ? 'tile--warn'">
+            <span class="tile__num" th:text="${#lists.size(proximosACaducar)}">0</span>
+            <span class="tile__label">caducan pronto</span>
+        </a>
+        <a class="tile" th:href="@{/inventario}"
+           th:classappend="${#lists.size(caducados) > 0} ? 'tile--danger'">
+            <span class="tile__num" th:text="${#lists.size(caducados)}">0</span>
+            <span class="tile__label">caducados</span>
+        </a>
+    </div>
+
+    <!-- ===== 📅 Semana (placeholder hasta la fase de planificación) ==== -->
+    <h2>📅 Semana</h2>
+    <div class="card">
+        <div class="empty" style="padding:1.1rem 0">
+            <span class="empty__icon">📅</span>
+            El planificador semanal llega en la siguiente fase.
+            <div style="margin-top:.7rem"><a class="btn btn--sm" th:href="@{/plan}">Abrir Plan</a></div>
         </div>
     </div>
 
-    <section th:if="${#lists.size(avisos) > 0}">
-        <h2>⚠️ Próximos a caducar</h2>
-        <ul class="lista-avisos">
-            <li th:each="a : ${avisos}" class="aviso">
-                <div class="aviso-texto">
-                    <strong th:text="${a.nombre}">Nombre</strong>
-                    — <span th:text="${a.zona}">Zona</span>
-                    — caduca <span th:text="${a.fechaCaducidad}">fecha</span>
-                </div>
-                <div class="aviso-pregunta">
-                    <span>¿Añadir a la lista de la compra?</span>
-                    <form th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" style="display:inline;">
-                        <input type="hidden" name="volver" value="/">
-                        <button type="submit" class="button-si">Sí</button>
-                    </form>
-                    <button type="button" class="button-no" onclick="this.closest('.aviso').remove()">No</button>
-                </div>
-            </li>
-        </ul>
-        <a th:href="@{/recetas}" class="button">Ver sugerencias de recetas</a>
-    </section>
+    <!-- ===== ⚠️ Alertas =============================================== -->
+    <h2>⚠️ Alertas</h2>
+    <div class="alert-item alert-item--danger" th:each="a : ${caducados}">
+        <span class="alert-item__text">
+            <strong th:text="${a.nombre}">Producto</strong> —
+            <span th:text="${a.zona}">Nevera</span> — caducado
+        </span>
+        <span class="alert-item__actions">
+            <form th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" class="inline-form">
+                <input type="hidden" name="volver" value="/">
+                <button type="submit" class="btn btn--sm btn--primary">+ Compra</button>
+            </form>
+        </span>
+    </div>
+    <div class="alert-item" th:each="a : ${avisos}">
+        <span class="alert-item__text">
+            <strong th:text="${a.nombre}">Leche</strong> —
+            <span th:text="${a.zona}">Nevera</span> —
+            <span th:text="${a.diasParaCaducar != null}
+                          ? ('caduca en ' + ${a.diasParaCaducar} + ' día(s)')
+                          : 'caduca pronto'">caduca pronto</span>
+        </span>
+        <span class="alert-item__actions">
+            <form th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" class="inline-form">
+                <input type="hidden" name="volver" value="/">
+                <button type="submit" class="btn btn--sm btn--primary">+ Compra</button>
+            </form>
+        </span>
+    </div>
+    <p th:if="${#lists.isEmpty(avisos) and #lists.isEmpty(caducados)}" class="muted small">
+        Sin alertas. Todo en orden ✨
+    </p>
+
 </main>
 </body>
 </html>

@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UsuarioService implements UserDetailsService, CommandLineRunner {
@@ -27,6 +28,9 @@ public class UsuarioService implements UserDetailsService, CommandLineRunner {
 
     @Value("${smartkitchen.admin.password}")
     private String adminPassword;
+
+    @Value("${smartkitchen.admin.email:}")
+    private String adminEmail;
 
     public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, Environment environment) {
         this.usuarioRepository = usuarioRepository;
@@ -51,7 +55,22 @@ public class UsuarioService implements UserDetailsService, CommandLineRunner {
     }
 
     public Usuario crearUsuario(String username, String passwordPlano, String rol) {
-        Usuario u = new Usuario(username, passwordEncoder.encode(passwordPlano), rol);
+        String limpio = username == null ? "" : username.trim();
+        if (limpio.isEmpty()) {
+            throw new IllegalArgumentException("El nombre de usuario es obligatorio.");
+        }
+        if (usuarioRepository.findByUsername(limpio).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un usuario con ese nombre.");
+        }
+        if (passwordPlano == null || passwordPlano.length() < 8) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres.");
+        }
+        String rolFinal = "ADMIN".equals(rol) ? "ADMIN" : "MIEMBRO";
+        Usuario u = new Usuario(limpio, passwordEncoder.encode(passwordPlano), rolFinal);
+        // Los usuarios creados a mano por el admin son de confianza: no pasan por
+        // confirmacion de correo.
+        u.setEmailVerificado(true);
+        u.setActivo(true);
         return usuarioRepository.save(u);
     }
 
@@ -59,13 +78,80 @@ public class UsuarioService implements UserDetailsService, CommandLineRunner {
         return usuarioRepository.findAll();
     }
 
+    public Optional<Usuario> buscarPorUsername(String username) {
+        return usuarioRepository.findByUsername(username);
+    }
+
+    public Usuario buscarPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + id));
+    }
+
+    /** Activa/desactiva un usuario. No permite desactivar al último ADMIN activo. */
+    public void alternarActivo(Long id) {
+        Usuario u = buscarPorId(id);
+        if (u.isActivo() && u.isAdmin() && contarAdminsActivos() <= 1) {
+            throw new IllegalStateException("Debe quedar al menos un administrador activo.");
+        }
+        u.setActivo(!u.isActivo());
+        usuarioRepository.save(u);
+    }
+
+    /** Actualiza el perfil (nombre visible y avatar) del propio usuario. */
+    public void actualizarPerfil(String username, String nombreVisible, String avatarEmoji) {
+        Usuario u = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        u.setNombreVisible(nombreVisible == null || nombreVisible.isBlank() ? null : nombreVisible.trim());
+        if (avatarEmoji != null && !avatarEmoji.isBlank()) {
+            u.setAvatarEmoji(avatarEmoji.trim());
+        }
+        usuarioRepository.save(u);
+    }
+
+    public void cambiarPassword(String username, String actual, String nueva) {
+        Usuario u = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
+        if (!passwordEncoder.matches(actual, u.getPasswordHash())) {
+            throw new IllegalArgumentException("La contraseña actual no es correcta.");
+        }
+        if (nueva == null || nueva.length() < 8) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres.");
+        }
+        u.setPasswordHash(passwordEncoder.encode(nueva));
+        usuarioRepository.save(u);
+    }
+
+    private long contarAdminsActivos() {
+        return usuarioRepository.findAll().stream()
+                .filter(Usuario::isActivo)
+                .filter(Usuario::isAdmin)
+                .count();
+    }
+
     @Override
     public void run(String... args) {
         validarCredencialesProduccion();
 
         if (usuarioRepository.count() == 0) {
-            crearUsuario(adminUsername, adminPassword, "ADMIN");
+            Usuario admin = crearUsuario(adminUsername, adminPassword, "ADMIN");
+            if (adminEmail != null && !adminEmail.isBlank()) {
+                admin.setEmail(adminEmail.trim().toLowerCase());
+                usuarioRepository.save(admin);
+            }
             System.out.println("Usuario admin inicial creado: " + adminUsername);
+        } else {
+            // Si el admin ya existe pero no tiene correo y ahora hay uno configurado,
+            // lo guardamos para que pueda usar "He olvidado mi contrasena".
+            if (adminEmail != null && !adminEmail.isBlank()) {
+                usuarioRepository.findByUsername(adminUsername).ifPresent(admin -> {
+                    if (admin.getEmail() == null || admin.getEmail().isBlank()) {
+                        admin.setEmail(adminEmail.trim().toLowerCase());
+                        admin.setEmailVerificado(true);
+                        usuarioRepository.save(admin);
+                        System.out.println("Correo del admin actualizado: " + admin.getEmail());
+                    }
+                });
+            }
         }
     }
 

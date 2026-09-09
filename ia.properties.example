@@ -1,0 +1,15 @@
+# CLAVE DE IA (Anthropic)  ·  plantilla
+#
+# Copia este fichero a:
+#     C:\Users\<tu-usuario>\.smart-kitchen\ia.properties
+# (o a la carpeta que indique SMARTKITCHEN_HOME). La app lo carga sola al
+# arrancar. Esta FUERA del repositorio: nunca se sube a git.
+#
+# La clave se saca de  https://console.anthropic.com/  -> API Keys.
+# Se usa para: escanear productos con la cámara y las sugerencias de recetas.
+# Sin clave, esas funciones se desactivan pero el resto de la app va igual.
+
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Opcional: modelo a usar (por defecto claude-sonnet-4-6).
+#ANTHROPIC_MODEL=claude-sonnet-4-6

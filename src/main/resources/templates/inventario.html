@@ -1,99 +1,149 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head th:replace="~{fragments/layout :: head('Inventario')}"></head>
 <body>
-<nav th:replace="~{fragments/layout :: nav}"></nav>
+<div th:replace="~{fragments/layout :: nav('inventario')}"></div>
 
 <main class="container">
-    <h1>Inventario</h1>
 
-    <section th:if="${#lists.size(avisos) > 0}">
-        <ul class="lista-avisos">
-            <li th:each="a : ${avisos}" class="aviso">
-                <div class="aviso-texto">
-                    <strong th:text="${a.nombre}">Nombre</strong> caduca pronto
-                </div>
-                <div class="aviso-pregunta">
-                    <span>¿Añadir a la lista de la compra?</span>
-                    <form th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" style="display:inline;">
-                        <input type="hidden" name="volver" value="/inventario">
-                        <button type="submit" class="button-si">Sí</button>
-                    </form>
-                    <button type="button" class="button-no" onclick="this.closest('.aviso').remove()">No</button>
-                </div>
-            </li>
-        </ul>
-    </section>
+    <h1>📦 Inventario</h1>
+    <p class="muted small" th:text="${total} + (${total} == 1 ? ' producto en casa' : ' productos en casa')">0 productos en casa</p>
 
-    <div class="tabs">
-        <a th:href="@{/inventario}" th:classappend="${zonaSeleccionada == null} ? 'active'">Todas</a>
-        <a th:each="z : ${zonas}"
-           th:href="@{/inventario(zona=${z})}"
-           th:classappend="${zonaSeleccionada == z} ? 'active'"
-           th:text="${z}">Zona</a>
+    <div th:if="${ok}" class="flash" th:text="${ok}">Guardado</div>
+    <div th:if="${error}" class="flash flash--error" th:text="${error}">Error</div>
+
+    <!-- ===== Resumen ================================================= -->
+    <div class="grid grid--tiles">
+        <div class="tile tile--ok">
+            <span class="tile__num" th:text="${nDisponibles}">0</span>
+            <span class="tile__label">🟢 disponibles</span>
+        </div>
+        <div class="tile" th:classappend="${nPocoStock > 0} ? 'tile--warn'">
+            <span class="tile__num" th:text="${nPocoStock}">0</span>
+            <span class="tile__label">🟠 poco stock</span>
+        </div>
+        <div class="tile" th:classappend="${nCaducaPronto > 0} ? 'tile--warn'">
+            <span class="tile__num" th:text="${nCaducaPronto}">0</span>
+            <span class="tile__label">🟠 caducan pronto</span>
+        </div>
+        <div class="tile" th:classappend="${nCaducado > 0} ? 'tile--danger'">
+            <span class="tile__num" th:text="${nCaducado}">0</span>
+            <span class="tile__label">🔴 caducado / agotado</span>
+        </div>
     </div>
 
-    <table class="tabla">
-        <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Zona</th>
-            <th>Cantidad</th>
-            <th>Caduca</th>
-            <th>Días</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="a : ${alimentos}"
-            th:classappend="${a.diasParaCaducar != null and a.diasParaCaducar <= 3} ? 'fila-alerta'">
-            <td data-label="Nombre" th:text="${a.nombre}">Nombre</td>
-            <td data-label="Zona" th:text="${a.zona}">Zona</td>
-            <td data-label="Cantidad" th:text="${a.cantidad} + ' ' + ${a.unidad}">Cantidad</td>
-            <td data-label="Caduca" th:text="${a.fechaCaducidad} ?: '—'">Fecha</td>
-            <td data-label="Días" th:text="${a.diasParaCaducar} ?: '—'">Días</td>
-            <td data-label="">
-                <form th:action="@{/inventario/{id}/eliminar(id=${a.id})}" method="post">
-                    <button type="submit" class="link-button">Eliminar</button>
-                </form>
-            </td>
-        </tr>
-        <tr th:if="${#lists.isEmpty(alimentos)}">
-            <td colspan="6">No hay alimentos en esta zona todavía.</td>
-        </tr>
-        </tbody>
-    </table>
+    <!-- ===== Filtro por zona ======================================== -->
+    <div class="chips" style="margin:1.1rem 0">
+        <a class="chip" th:href="@{/inventario}" th:classappend="${zonaSeleccionada == null} ? 'is-active'">Todas</a>
+        <a class="chip" th:each="z : ${zonas}"
+           th:href="@{/inventario(zona=${z})}"
+           th:classappend="${zonaSeleccionada == z} ? 'is-active'"
+           th:text="${z.emoji} + ' ' + ${z.etiqueta}">Zona</a>
+    </div>
 
-    <h2>Añadir alimento</h2>
-    <form th:action="@{/inventario}" th:object="${nuevoAlimento}" method="post" class="form-grid">
-        <label>
-            Nombre
-            <input type="text" th:field="*{nombre}" required>
-        </label>
-        <label>
-            Zona
-            <select th:field="*{zona}" required>
-                <option th:each="z : ${zonas}" th:value="${z}" th:text="${z}">Zona</option>
-            </select>
-        </label>
-        <label>
-            Cantidad
-            <input type="number" step="0.01" th:field="*{cantidad}" value="1">
-        </label>
-        <label>
-            Unidad
-            <input type="text" th:field="*{unidad}" value="unidad">
-        </label>
-        <label>
-            Fecha de caducidad
-            <input type="date" th:field="*{fechaCaducidad}">
-        </label>
-        <label>
-            Código NFC (opcional)
-            <input type="text" th:field="*{codigoNfc}">
-        </label>
-        <button type="submit" class="button">Añadir</button>
-    </form>
+    <!-- ===== Detección de la IA (tras escanear) ==================== -->
+    <div th:if="${deteccion != null}" class="flash flash--info" style="display:block">
+        📷 La IA ha reconocido <strong th:text="${deteccion.nombre}">Producto</strong>
+        <span th:text="'(' + ${deteccion.confianza} + '% de confianza)'">(80%)</span>.
+        <span th:if="${deteccion.fechaCaducidad != null}">
+            Caduca el <strong th:text="${deteccion.fechaCaducidad}">2026-01-01</strong>
+            <span th:text="${deteccion.caducidadEstimada} ? '(estimado)' : '(leído de la etiqueta)'">(estimado)</span>.
+        </span>
+        <span th:if="${deteccion.fechaCaducidad == null}">No se ha detectado fecha de caducidad.</span>
+        Revisa los datos de abajo y guarda.
+    </div>
+
+    <!-- ===== Añadir producto ======================================= -->
+    <div class="btn-row" style="margin-bottom:.6rem">
+        <a class="btn btn--primary" th:href="@{/inventario/escanear}">📷 Escanear producto</a>
+    </div>
+    <details class="card" th:open="${abrirFormulario}" style="margin-bottom:1.2rem">
+        <summary style="cursor:pointer; font-weight:700">＋ Añadir producto a mano</summary>
+        <form th:action="@{/inventario}" th:object="${nuevoAlimento}" method="post"
+              class="form-grid" style="margin-top:1rem">
+            <label class="field">
+                <span>Nombre</span>
+                <input type="text" th:field="*{nombre}" required autocomplete="off">
+            </label>
+            <label class="field">
+                <span>Ubicación</span>
+                <select th:field="*{zona}" required>
+                    <option th:each="z : ${zonas}" th:value="${z}" th:text="${z.emoji} + ' ' + ${z.etiqueta}">Zona</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Categoría</span>
+                <select th:field="*{categoria}">
+                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c.emoji} + ' ' + ${c.etiqueta}">Categoría</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Cantidad</span>
+                <input type="number" step="0.01" min="0" th:field="*{cantidad}">
+            </label>
+            <label class="field">
+                <span>Unidad</span>
+                <input type="text" th:field="*{unidad}" list="unidades">
+                <datalist id="unidades">
+                    <option value="unidad"></option><option value="g"></option><option value="kg"></option>
+                    <option value="ml"></option><option value="l"></option><option value="paquete"></option>
+                </datalist>
+            </label>
+            <label class="field">
+                <span>Stock mínimo (0 = sin control)</span>
+                <input type="number" step="0.01" min="0" th:field="*{stockMinimo}">
+            </label>
+            <label class="field">
+                <span>Caduca el</span>
+                <input type="date" th:field="*{fechaCaducidad}">
+            </label>
+            <label class="field">
+                <span>Código NFC / QR (opcional)</span>
+                <input type="text" th:field="*{codigoNfc}">
+            </label>
+            <label class="field field--wide">
+                <span>Notas</span>
+                <input type="text" th:field="*{notas}" maxlength="500">
+            </label>
+            <div class="field field--wide">
+                <button type="submit" class="btn btn--primary btn--lg">＋ Añadir al inventario</button>
+            </div>
+        </form>
+    </details>
+
+    <!-- ===== Vacío ================================================= -->
+    <div th:if="${total == 0}" class="empty">
+        <span class="empty__icon">📦</span>
+        Tu inventario está vacío. Añade el primer producto arriba.
+    </div>
+
+    <!-- ===== Lista filtrada por zona ============================== -->
+    <div th:if="${total > 0 and zonaSeleccionada != null}" class="group">
+        <div class="group__head">
+            <span th:text="${zonaSeleccionada.emoji} + ' ' + ${zonaSeleccionada.etiqueta}">Zona</span>
+            <span class="group__count" th:text="${#lists.size(alimentos)}">0</span>
+        </div>
+        <div th:if="${#lists.isEmpty(alimentos)}" class="muted small" style="padding:.6rem 0">
+            Nada guardado en esta zona.
+        </div>
+        <th:block th:each="a : ${alimentos}">
+            <div th:replace="~{fragments/inventario :: fila(${a})}"></div>
+        </th:block>
+    </div>
+
+    <!-- ===== Lista agrupada por zona ============================== -->
+    <div th:if="${total > 0 and zonaSeleccionada == null}"
+         th:each="entry : ${porZona}" class="group">
+        <div class="group__head">
+            <span th:text="${entry.key.emoji} + ' ' + ${entry.key.etiqueta}">Zona</span>
+            <span class="group__count" th:text="${#lists.size(entry.value)}">0</span>
+        </div>
+        <th:block th:each="a : ${entry.value}">
+            <div th:replace="~{fragments/inventario :: fila(${a})}"></div>
+        </th:block>
+    </div>
+
 </main>
+
 </body>
 </html>

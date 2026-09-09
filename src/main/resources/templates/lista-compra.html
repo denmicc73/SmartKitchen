@@ -1,54 +1,128 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head th:replace="~{fragments/layout :: head('Lista de compra')}"></head>
 <body>
-    <nav th:replace="~{fragments/layout :: nav}"></nav>
+<div th:replace="~{fragments/layout :: nav('compra')}"></div>
 
-    <main class="container">
-        <h1>Lista de la compra</h1>
+<main class="container">
 
-        <h2>Pendientes</h2>
-        <ul class="lista-checks">
-            <li th:each="item : ${pendientes}">
-                <form th:action="@{/lista-compra/{id}/marcar(id=${item.id})}" method="post" style="display:inline;">
-                    <input type="hidden" name="comprado" value="true">
-                    <button type="submit" class="checkbox-button">☐</button>
-                </form>
-                <span th:text="${item.nombre} + ' — ' + ${item.cantidad} + ' ' + ${item.unidad}">Item</span>
-                <form th:action="@{/lista-compra/{id}/eliminar(id=${item.id})}" method="post" style="display:inline;">
-                    <button type="submit" class="link-button">✕</button>
-                </form>
-            </li>
-            <li th:if="${#lists.isEmpty(pendientes)}">No hay nada pendiente. ¡Buen trabajo!</li>
-        </ul>
+    <h1>🛒 Lista de la compra</h1>
+    <p class="muted small"
+       th:text="${numPendientes} + (${numPendientes} == 1 ? ' producto pendiente' : ' productos pendientes')">0 pendientes</p>
 
-        <h2>Comprados</h2>
-        <ul class="lista-checks">
-            <li th:each="item : ${comprados}">
-                <form th:action="@{/lista-compra/{id}/marcar(id=${item.id})}" method="post" style="display:inline;">
-                    <input type="hidden" name="comprado" value="false">
-                    <button type="submit" class="checkbox-button">☑</button>
-                </form>
-                <span class="tachado" th:text="${item.nombre} + ' — ' + ${item.cantidad} + ' ' + ${item.unidad}">Item</span>
-            </li>
-        </ul>
+    <div th:if="${ok}" class="flash" th:text="${ok}">Guardado</div>
+    <div th:if="${error}" class="flash flash--error" th:text="${error}">Error</div>
 
-        <h2>Añadir a la lista</h2>
-        <form th:action="@{/lista-compra}" th:object="${nuevoItem}" method="post" class="form-grid">
-            <label>
-                Nombre
-                <input type="text" th:field="*{nombre}" required>
+    <!-- ===== Añadir producto ====================================== -->
+    <details class="card" th:open="${error != null}" style="margin-bottom:1.2rem">
+        <summary style="cursor:pointer; font-weight:700">＋ Añadir producto</summary>
+        <form th:action="@{/lista-compra}" th:object="${nuevoItem}" method="post"
+              class="form-grid" style="margin-top:1rem">
+            <label class="field field--wide">
+                <span>Producto</span>
+                <input type="text" th:field="*{nombre}" required autocomplete="off">
             </label>
-            <label>
-                Cantidad
-                <input type="number" step="0.01" th:field="*{cantidad}" value="1">
+            <label class="field">
+                <span>Cantidad</span>
+                <input type="number" step="0.01" min="0" th:field="*{cantidad}">
             </label>
-            <label>
-                Unidad
-                <input type="text" th:field="*{unidad}" value="unidad">
+            <label class="field">
+                <span>Unidad</span>
+                <input type="text" th:field="*{unidad}" list="unidades">
+                <datalist id="unidades">
+                    <option value="unidad"></option><option value="g"></option><option value="kg"></option>
+                    <option value="ml"></option><option value="l"></option><option value="paquete"></option>
+                </datalist>
             </label>
-            <button type="submit" class="button">Añadir</button>
+            <label class="field">
+                <span>Categoría</span>
+                <select th:field="*{categoria}">
+                    <option th:each="c : ${categorias}" th:value="${c}" th:text="${c.emoji} + ' ' + ${c.etiqueta}">Categoría</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Prioridad</span>
+                <select th:field="*{prioridad}">
+                    <option th:each="p : ${prioridades}" th:value="${p}" th:text="${p.emoji} + ' ' + ${p.etiqueta}">Prioridad</option>
+                </select>
+            </label>
+            <div class="field field--wide">
+                <button type="submit" class="btn btn--primary btn--lg">＋ Añadir a la lista</button>
+            </div>
         </form>
-    </main>
+    </details>
+
+    <!-- ===== Vacío ============================================== -->
+    <div th:if="${numPendientes == 0 and #lists.isEmpty(comprados)}" class="empty">
+        <span class="empty__icon">🛒</span>
+        La lista está vacía. Añade lo que necesites comprar.
+    </div>
+
+    <!-- ===== Pendientes, agrupados por sección ================== -->
+    <div th:each="grupo : ${gruposPendientes}" class="group">
+        <div class="group__head">
+            <span th:text="${grupo.key.emoji} + ' ' + ${grupo.key.etiqueta}">Sección</span>
+            <span class="group__count" th:text="${#lists.size(grupo.value)}">0</span>
+        </div>
+        <ul class="list">
+            <li th:each="it : ${grupo.value}">
+                <form th:action="@{/lista-compra/{id}/marcar(id=${it.id})}" method="post" class="inline-form">
+                    <input type="hidden" name="comprado" value="true">
+                    <button type="submit" class="check" title="Marcar como comprado">✓</button>
+                </form>
+                <div class="list__main">
+                    <div class="list__title" th:text="${it.nombre}">Producto</div>
+                    <div class="list__sub">
+                        <span th:text="${it.cantidad} + ' ' + ${it.unidad}">1 ud</span>
+                        <span th:if="${it.generadoAutomaticamente}" title="Añadido automáticamente"> · auto</span>
+                    </div>
+                </div>
+                <span class="pill"
+                      th:classappend="${it.prioridad.name() == 'ALTA' ? 'pill--danger' : (it.prioridad.name() == 'MEDIA' ? 'pill--warn' : 'pill--plain')}"
+                      th:text="${it.prioridad.etiqueta}">Media</span>
+                <div class="row" style="gap:.3rem; flex-wrap:nowrap">
+                    <a class="btn btn--sm" title="Comprado y al inventario"
+                       th:href="@{/lista-compra/{id}/al-inventario(id=${it.id})}">📦</a>
+                    <form th:action="@{/lista-compra/{id}/eliminar(id=${it.id})}" method="post" class="inline-form">
+                        <button type="submit" class="btn btn--sm btn--danger" title="Quitar">✕</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <p th:if="${numPendientes == 0 and !#lists.isEmpty(comprados)}" class="muted small">
+        Nada pendiente. ¡Todo comprado! ✨
+    </p>
+
+    <!-- ===== Historial ======================================== -->
+    <div th:if="${!#lists.isEmpty(comprados)}" style="margin-top:1.6rem">
+        <div class="spread">
+            <h2 style="margin:0">Comprados</h2>
+            <form th:action="@{/lista-compra/historial/vaciar}" method="post" class="inline-form">
+                <button type="submit" class="btn btn--ghost btn--sm">Vaciar historial</button>
+            </form>
+        </div>
+        <ul class="list">
+            <li th:each="it : ${comprados}">
+                <form th:action="@{/lista-compra/{id}/marcar(id=${it.id})}" method="post" class="inline-form">
+                    <input type="hidden" name="comprado" value="false">
+                    <button type="submit" class="check check--done" title="Devolver a pendientes">✓</button>
+                </form>
+                <div class="list__main">
+                    <div class="list__title tachado" th:text="${it.nombre}">Producto</div>
+                    <div class="list__sub">
+                        <span th:text="${it.cantidad} + ' ' + ${it.unidad}">1 ud</span>
+                        <span th:if="${it.fechaComprado != null}" th:text="' · ' + ${it.fechaComprado}"></span>
+                    </div>
+                </div>
+                <form th:action="@{/lista-compra/{id}/eliminar(id=${it.id})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn--sm btn--danger" title="Quitar">✕</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+
+</main>
 </body>
 </html>

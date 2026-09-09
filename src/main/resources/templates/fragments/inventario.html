@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<body>
+
+<!-- Una fila de alimento del inventario. Uso:
+     <div th:replace="~{fragments/inventario :: fila(${a})}"></div> -->
+<div th:fragment="fila(a)" class="inv-item">
+    <span class="inv-item__dot" th:text="${a.estado.emoji}" th:title="${a.estado.etiqueta}">🟢</span>
+    <div class="inv-item__main">
+        <div class="inv-item__name">
+            <span th:text="${a.nombre}">Producto</span>
+            <span th:if="${a.estado.name() == 'CADUCADO'}" class="pill pill--danger">caducado</span>
+            <span th:if="${a.estado.name() == 'AGOTADO'}" class="pill pill--danger">agotado</span>
+            <span th:if="${a.diasParaCaducar != null and a.diasParaCaducar >= 0 and a.diasParaCaducar <= 3}"
+                  class="pill pill--warn"
+                  th:text="${a.diasParaCaducar == 0 ? 'caduca hoy' : (a.diasParaCaducar == 1 ? 'caduca mañana' : 'caduca en ' + a.diasParaCaducar + ' días')}">caduca pronto</span>
+        </div>
+        <div class="inv-item__sub">
+            <span th:text="${a.cantidad} + ' ' + ${a.unidad}">1 ud</span>
+            <span th:if="${a.categoria != null}" th:text="' · ' + ${a.categoria.etiqueta}"></span>
+            <span th:if="${a.fechaCaducidad != null and (a.diasParaCaducar == null or a.diasParaCaducar > 3)}"
+                  th:text="' · caduca ' + ${a.fechaCaducidad}"></span>
+            <span th:if="${a.stockMinimo > 0}" th:text="' · mín. ' + ${a.stockMinimo}"></span>
+        </div>
+    </div>
+    <div class="row" style="gap:.35rem; flex-wrap:nowrap">
+        <a class="btn btn--sm" th:href="@{/inventario/{id}/editar(id=${a.id})}">Editar</a>
+        <form th:if="${a.estado.isAlerta() and !a.enListaCompra}"
+              th:action="@{/lista-compra/desde-alimento/{id}(id=${a.id})}" method="post" class="inline-form">
+            <input type="hidden" name="volver" value="/inventario">
+            <button type="submit" class="btn btn--sm btn--primary" title="Añadir a la compra">＋🛒</button>
+        </form>
+        <form th:action="@{/inventario/{id}/eliminar(id=${a.id})}" method="post" class="inline-form">
+            <button type="submit" class="btn btn--sm btn--danger" title="Eliminar">✕</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

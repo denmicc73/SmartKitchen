@@ -5,3 +5,7 @@ data/
 .idea/
 *.iml
 .DS_Store
+
+# Secretos reales (las plantillas .example sí se versionan)
+smtp.properties
+ia.properties

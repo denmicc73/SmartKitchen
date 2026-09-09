@@ -22,7 +22,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/js/**", "/h2-console/**").permitAll()
+                .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/favicon.ico", "/h2-console/**").permitAll()
+                // Alta de cuenta y recuperacion de contrasena (acceso publico).
+                .requestMatchers("/registro/**", "/confirmar", "/recuperar/**", "/reset/**").permitAll()
+                .requestMatchers("/ajustes/usuarios/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -35,8 +38,8 @@ public class SecurityConfig {
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
             )
-            // Sin registro público: no hay endpoint de "signup".
-            // Los usuarios se crean solo por el admin (ver UsuarioService).
+            // Registro público en /registro con confirmación por correo. El admin
+            // también puede crear usuarios a mano desde Ajustes (ver UsuarioService).
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(3)

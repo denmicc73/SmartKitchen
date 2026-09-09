@@ -3,19 +3,61 @@ spring:
     name: smart-kitchen
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  # Ficheros opcionales con secretos, fuera del repositorio (ver *.example):
+  #   ~/.smart-kitchen/smtp.properties  -> credenciales de correo
+  #   ~/.smart-kitchen/ia.properties    -> ANTHROPIC_API_KEY para la IA
+  # Si no existen, la app arranca igual (sin correo / sin IA).
+  config:
+    import:
+      - "optional:file:${SMARTKITCHEN_HOME:${user.home}/.smart-kitchen}/smtp.properties"
+      - "optional:file:${SMARTKITCHEN_HOME:${user.home}/.smart-kitchen}/ia.properties"
   thymeleaf:
     cache: false
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
+  # Envio de correo (confirmacion de cuenta y reseteo de contrasena).
+  # La app SOLO envia de verdad si hay SMTP_USER y SMTP_PASS. Sin ellos escribe
+  # el enlace en el log (modo desarrollo). El host por defecto es Gmail.
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:true}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 server:
   port: ${SERVER_PORT:8080}
 
 smartkitchen:
+  # URL publica base, usada para construir los enlaces de los correos.
+  base-url: ${BASE_URL:http://localhost:8080}
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:changeme123}
+    # Correo personal del administrador. Se guarda en la cuenta admin para poder
+    # recuperar su contrasena desde "He olvidado mi contrasena".
+    email: ${ADMIN_EMAIL:}
+  mail:
+    # Remitente de los correos. Con Gmail debe ser tu propia direccion (o un
+    # alias verificado), por eso por defecto usa el usuario SMTP.
+    from: ${MAIL_FROM:${SMTP_USER:Smart Kitchen <no-reply@smart-kitchen.local>}}
+  uploads:
+    # Carpeta absoluta (independiente del directorio de arranque) para no
+    # perder de vista las imagenes segun desde donde se lance la app.
+    dir: ${UPLOADS_DIR:${SMARTKITCHEN_HOME:${user.home}/.smart-kitchen}/uploads}
   ia:
     api-key: ${ANTHROPIC_API_KEY:}
-    modelo: claude-sonnet-4-6
+    modelo: ${ANTHROPIC_MODEL:claude-sonnet-4-6}
 
 ---
 spring:
@@ -23,7 +65,10 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:h2:file:./data/smartkitchen;DB_CLOSE_ON_EXIT=FALSE
+    # Ruta ABSOLUTA para que siempre sea la misma base de datos, se lance la app
+    # desde donde se lance (IntelliJ, Maven, terminal...). Antes era "./data/..."
+    # y creaba una BD distinta segun el directorio de trabajo.
+    url: jdbc:h2:file:${SMARTKITCHEN_HOME:${user.home}/.smart-kitchen}/db/smartkitchen;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
@@ -69,6 +114,8 @@ server:
   forward-headers-strategy: framework
 
 smartkitchen:
+  base-url: ${BASE_URL:http://localhost:8080}
   admin:
     username: ${ADMIN_USERNAME}
     password: ${ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL:}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/layout :: head('Escanear producto')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: nav('inventario')}"></div>
+
+<main class="container">
+    <h1>📷 Escanear producto</h1>
+    <p class="muted small">Haz una foto y la IA identifica qué producto es</p>
+
+    <div th:if="${error}" class="flash flash--error" th:text="${error}">Error</div>
+
+    <!-- Sin clave de IA configurada -->
+    <div th:unless="${iaDisponible}" class="card" style="margin-top:1rem">
+        <div class="empty">
+            <span class="empty__icon">🔑</span>
+            <p><strong>Falta configurar la IA.</strong></p>
+            <p class="small">
+                Pega tu <code>ANTHROPIC_API_KEY</code> en
+                <code>~/.smart-kitchen/ia.properties</code> (ver
+                <code>ia.properties.example</code>) y reinicia la app.
+            </p>
+            <a class="btn" th:href="@{/inventario}">Volver al inventario</a>
+        </div>
+    </div>
+
+    <!-- Captura.
+         El token CSRF va en la URL (no en el cuerpo) porque el filtro CSRF se
+         ejecuta antes de parsear el multipart y no lo veria en el cuerpo. -->
+    <form th:if="${iaDisponible}"
+          th:action="@{/inventario/escanear(_csrf=${_csrf.token})}" method="post"
+          enctype="multipart/form-data" class="card" style="margin-top:1rem">
+        <label class="field field--wide">
+            <span>Foto del producto</span>
+            <input type="file" name="foto" accept="image/*" capture="environment" required
+                   id="foto" onchange="previsualizar(this)">
+        </label>
+
+        <img id="preview" alt="" hidden
+             style="width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:var(--surface-2);margin:.4rem 0">
+
+        <button type="submit" class="btn btn--primary btn--lg btn--block" id="enviar">
+            Identificar producto
+        </button>
+        <p class="muted small" style="margin-top:.6rem">
+            En el móvil se abre la cámara directamente. La IA intenta leer la
+            <strong>fecha de caducidad de la etiqueta</strong>; si no la ve, la estima
+            según el tipo de producto. La foto solo se envía para reconocerla; no se guarda.
+        </p>
+    </form>
+</main>
+
+<script>
+    function previsualizar(input) {
+        var img = document.getElementById('preview');
+        var file = input.files && input.files[0];
+        if (!file) { img.hidden = true; return; }
+        var reader = new FileReader();
+        reader.onload = function (e) { img.src = e.target.result; img.hidden = false; };
+        reader.readAsDataURL(file);
+    }
+    document.querySelector('form')?.addEventListener('submit', function () {
+        var b = document.getElementById('enviar');
+        if (b) { b.disabled = true; b.textContent = 'Analizando la foto…'; }
+    });
+</script>
+</body>
+</html>

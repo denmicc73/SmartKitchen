@@ -1,0 +1,20 @@
+# CREDENCIALES SMTP  ·  plantilla
+#
+# Copia este fichero a:
+#     C:\Users\<tu-usuario>\.smart-kitchen\smtp.properties
+# (o a la carpeta que indique SMARTKITCHEN_HOME). La app lo carga sola al
+# arrancar. Esta FUERA del repositorio a proposito: nunca se sube a git.
+#
+# --- Gmail ---------------------------------------------------------------
+# Necesitas una "contrasena de aplicacion" (NO tu contrasena normal):
+#   1. Activa la verificacion en dos pasos en tu cuenta de Google.
+#   2. Entra en  https://myaccount.google.com/apppasswords
+#   3. Crea una para "Correo", copia los 16 caracteres y pegalos en SMTP_PASS.
+
+SMTP_USER=tu-correo@gmail.com
+SMTP_PASS=pon_aqui_la_contrasena_de_aplicacion
+
+# Opcionales (los valores por defecto ya son los de Gmail):
+#SMTP_HOST=smtp.gmail.com
+#SMTP_PORT=587
+#MAIL_FROM=Smart Kitchen <tu-correo@gmail.com>

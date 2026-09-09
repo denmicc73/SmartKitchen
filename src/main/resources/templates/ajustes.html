@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/layout :: head('Ajustes')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: nav('ajustes')}"></div>
+
+<main class="container">
+    <h1>⚙️ Ajustes</h1>
+
+    <div th:if="${ok}" class="flash" th:text="${ok}">Guardado</div>
+    <div th:if="${error}" class="flash flash--error" th:text="${error}">Error</div>
+
+    <!-- ===== Perfil ================================================== -->
+    <section class="card" style="margin-top:1rem">
+        <div class="card__head">
+            <h2 class="card__title" style="margin:0">Mi perfil</h2>
+        </div>
+        <form th:action="@{/ajustes/perfil}" method="post" class="form-grid">
+            <label class="field">
+                <span>Nombre para mostrar</span>
+                <input type="text" name="nombreVisible"
+                       th:value="${usuarioActual != null} ? ${usuarioActual.nombreVisible} : ''"
+                       placeholder="Cómo quieres que te llamen">
+            </label>
+            <label class="field">
+                <span>Avatar (emoji)</span>
+                <input type="text" name="avatarEmoji" maxlength="8"
+                       th:value="${usuarioActual != null} ? ${usuarioActual.avatarEmoji} : ''"
+                       placeholder="🧑‍🍳">
+            </label>
+            <div class="field field--wide">
+                <button type="submit" class="btn btn--primary">Guardar perfil</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ===== Contraseña ============================================= -->
+    <section class="card" style="margin-top:1rem">
+        <div class="card__head">
+            <h2 class="card__title" style="margin:0">Cambiar contraseña</h2>
+        </div>
+        <form th:action="@{/ajustes/password}" method="post" class="form-grid">
+            <label class="field">
+                <span>Contraseña actual</span>
+                <input type="password" name="actual" required autocomplete="current-password">
+            </label>
+            <label class="field">
+                <span>Nueva contraseña</span>
+                <input type="password" name="nueva" required minlength="8" autocomplete="new-password">
+            </label>
+            <div class="field field--wide">
+                <button type="submit" class="btn btn--primary">Actualizar contraseña</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ===== Usuarios de la casa (solo admin) ====================== -->
+    <section class="card" style="margin-top:1rem"
+             th:if="${usuarioActual != null and usuarioActual.admin}">
+        <div class="card__head">
+            <h2 class="card__title" style="margin:0">👨‍👩‍👧 Usuarios de la casa</h2>
+        </div>
+
+        <ul class="list">
+            <li th:each="u : ${usuarios}">
+                <span class="avatar" style="width:32px;height:32px;font-size:1rem"
+                      th:text="${u.avatarEmoji != null and !u.avatarEmoji.isBlank()} ? ${u.avatarEmoji} : '🧑‍🍳'">🧑‍🍳</span>
+                <div class="list__main">
+                    <div class="list__title" th:text="${u.nombreParaMostrar}">Nombre</div>
+                    <div class="list__sub">
+                        <span th:text="'@' + ${u.username}">@user</span>
+                        <span th:if="${u.email != null}" th:text="' · ' + ${u.email}"></span>
+                    </div>
+                </div>
+                <span class="pill" th:classappend="${u.admin} ? 'pill--ok'" th:text="${u.rol}">MIEMBRO</span>
+                <form th:action="@{/ajustes/usuarios/{id}/activo(id=${u.id})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn--sm"
+                            th:classappend="${u.activo} ? 'btn--danger' : 'btn--primary'"
+                            th:text="${u.activo} ? 'Desactivar' : 'Activar'">Desactivar</button>
+                </form>
+            </li>
+        </ul>
+
+        <h3 style="margin-top:1.2rem">Crear usuario</h3>
+        <form th:action="@{/ajustes/usuarios}" method="post" class="form-grid">
+            <label class="field">
+                <span>Usuario</span>
+                <input type="text" name="username" required minlength="3">
+            </label>
+            <label class="field">
+                <span>Contraseña</span>
+                <input type="password" name="password" required minlength="8">
+            </label>
+            <label class="field">
+                <span>Rol</span>
+                <select name="rol">
+                    <option value="MIEMBRO">Miembro</option>
+                    <option value="ADMIN">Administrador</option>
+                </select>
+            </label>
+            <div class="field field--wide">
+                <button type="submit" class="btn btn--primary">Crear usuario</button>
+            </div>
+        </form>
+        <p class="muted small">
+            Los usuarios creados aquí entran directamente, sin confirmar el correo.
+        </p>
+    </section>
+
+</main>
+</body>
+</html>

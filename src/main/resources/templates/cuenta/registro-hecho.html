@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revisa tu correo · Smart Kitchen</title>
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <h1>📧</h1>
+        <p class="subtitle">Casi listo</p>
+        <p>
+            Hemos enviado un enlace de confirmación a
+            <strong th:text="${email}">tu correo</strong>.
+            Ábrelo para activar la cuenta.
+        </p>
+
+        <form th:action="@{/registro/reenviar}" method="post" style="margin-top:1.4rem">
+            <input type="hidden" name="email" th:value="${email}">
+            <button type="submit" class="btn btn--ghost btn--block">Reenviar correo</button>
+        </form>
+
+        <p class="login-links">
+            <a th:href="@{/login}">Ir a iniciar sesión</a>
+        </p>
+    </div>
+</body>
+</html>

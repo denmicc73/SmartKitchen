@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/layout :: head('Plan')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: nav('plan')}"></div>
+
+<main class="container">
+    <h1>📅 Plan semanal</h1>
+    <p class="muted small">Comida y cena de cada día de la semana</p>
+
+    <div class="card" style="margin-top:1rem">
+        <div class="empty">
+            <span class="empty__icon">🗓️</span>
+            <p><strong>Próximamente.</strong></p>
+            <p class="small">
+                Aquí podrás asignar una receta a la comida y la cena de cada día,
+                mover platos entre días y generar la lista de la compra de la semana.
+            </p>
+            <div class="btn-row" style="justify-content:center">
+                <a class="btn btn--primary" th:href="@{/recetas}">Ver recetas</a>
+                <a class="btn" th:href="@{/}">Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

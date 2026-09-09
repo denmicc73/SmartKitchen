@@ -1,24 +1,52 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head th:fragment="head(titulo)">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#4f8a6b">
     <title th:text="${titulo} + ' · Smart Kitchen'">Smart Kitchen</title>
     <link rel="stylesheet" th:href="@{/css/estilo.css}">
 </head>
 <body>
-<nav th:fragment="nav" class="navbar">
-    <div class="navbar-brand">🍽️ Smart Kitchen</div>
-    <button type="button" class="navbar-toggle" onclick="document.querySelector('.navbar-links').classList.toggle('open')" aria-label="Abrir menú">☰</button>
-    <div class="navbar-links">
-        <a th:href="@{/}">Inicio</a>
-        <a th:href="@{/inventario}">Inventario</a>
-        <a th:href="@{/lista-compra}">Lista de compra</a>
-        <a th:href="@{/recetas}">Recetas</a>
-        <form th:action="@{/logout}" method="post" style="display:inline;">
-            <button type="submit" class="link-button">Salir</button>
+
+<!--
+  Navegación única para toda la app.
+  - En escritorio: barra superior (.appbar) con los enlaces.
+  - En móvil: barra superior mínima + barra inferior de pestañas (.tabbar).
+  Uso:  <div th:replace="~{fragments/layout :: nav('inicio')}"></div>
+  Secciones: inicio · recetas · inventario · compra · plan · ajustes
+-->
+<th:block th:fragment="nav(activo)">
+    <header class="appbar">
+        <a th:href="@{/}" class="appbar__brand">🍽️ <span>Smart Kitchen</span></a>
+
+        <nav class="appbar__links">
+            <a th:href="@{/}"             th:classappend="${activo == 'inicio'}     ? 'is-active'">Inicio</a>
+            <a th:href="@{/recetas}"      th:classappend="${activo == 'recetas'}    ? 'is-active'">Recetas</a>
+            <a th:href="@{/inventario}"   th:classappend="${activo == 'inventario'} ? 'is-active'">Inventario</a>
+            <a th:href="@{/lista-compra}" th:classappend="${activo == 'compra'}     ? 'is-active'">Compra</a>
+            <a th:href="@{/plan}"         th:classappend="${activo == 'plan'}       ? 'is-active'">Plan</a>
+        </nav>
+
+        <span class="appbar__spacer"></span>
+
+        <a th:href="@{/ajustes}" class="avatar"
+           th:title="${usuarioActual != null} ? ${usuarioActual.nombreParaMostrar} : 'Ajustes'"
+           th:text="${usuarioActual != null and usuarioActual.avatarEmoji != null and !usuarioActual.avatarEmoji.isBlank()} ? ${usuarioActual.avatarEmoji} : '🧑‍🍳'">🧑‍🍳</a>
+
+        <form th:action="@{/logout}" method="post" class="inline-form">
+            <button type="submit" class="iconbtn" title="Cerrar sesión" aria-label="Cerrar sesión">⎋</button>
         </form>
-    </div>
-</nav>
+    </header>
+
+    <nav class="tabbar">
+        <a th:href="@{/}"             th:classappend="${activo == 'inicio'}     ? 'is-active'"><span class="tabbar__icon">🏠</span>Inicio</a>
+        <a th:href="@{/recetas}"      th:classappend="${activo == 'recetas'}    ? 'is-active'"><span class="tabbar__icon">🍳</span>Recetas</a>
+        <a th:href="@{/inventario}"   th:classappend="${activo == 'inventario'} ? 'is-active'"><span class="tabbar__icon">📦</span>Inventario</a>
+        <a th:href="@{/lista-compra}" th:classappend="${activo == 'compra'}     ? 'is-active'"><span class="tabbar__icon">🛒</span>Compra</a>
+        <a th:href="@{/plan}"         th:classappend="${activo == 'plan'}       ? 'is-active'"><span class="tabbar__icon">📅</span>Plan</a>
+    </nav>
+</th:block>
+
 </body>
 </html>

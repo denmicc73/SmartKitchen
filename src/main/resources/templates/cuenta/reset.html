@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva contraseña · Smart Kitchen</title>
+    <link rel="stylesheet" th:href="@{/css/estilo.css}">
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <h1>🔒</h1>
+        <p class="subtitle">Elige una contraseña nueva</p>
+
+        <form th:action="@{/reset}" method="post">
+            <input type="hidden" name="token" th:value="${token}">
+            <label class="field">
+                Nueva contraseña
+                <input type="password" name="password" required autofocus
+                       autocomplete="new-password" minlength="8">
+            </label>
+            <label class="field">
+                Repite la contraseña
+                <input type="password" name="password2" required
+                       autocomplete="new-password" minlength="8">
+            </label>
+            <button type="submit" class="btn btn--primary btn--block btn--lg">Guardar</button>
+        </form>
+
+        <p th:if="${error}" class="error" th:text="${error}"></p>
+        <p class="login-links">
+            <a th:href="@{/login}">Volver</a>
+        </p>
+    </div>
+</body>
+</html>
