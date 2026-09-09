@@ -119,3 +119,51 @@ smartkitchen:
     username: ${ADMIN_USERNAME}
     password: ${ADMIN_PASSWORD}
     email: ${ADMIN_EMAIL:}
+
+---
+# ---------------------------------------------------------------------------
+# Perfil "render": despliegue en Render (u otro PaaS) con PostgreSQL gestionado.
+# Se activa poniendo la variable de entorno  SPRING_PROFILES_ACTIVE=render
+#
+# La conexion a la base de datos se toma de las variables estandar de Spring
+# Boot (las rellenas en el panel de Render con los datos de tu PostgreSQL):
+#   SPRING_DATASOURCE_URL       jdbc:postgresql://<host>:5432/<base>
+#   SPRING_DATASOURCE_USERNAME  <usuario>
+#   SPRING_DATASOURCE_PASSWORD  <password>
+# El driver y el dialecto los deduce Spring Boot de la URL; no hay que fijarlos.
+#
+# Los perfiles "dev" (H2) y "prod" (MySQL/Docker) quedan intactos.
+# ---------------------------------------------------------------------------
+spring:
+  config:
+    activate:
+      on-profile: render
+  thymeleaf:
+    cache: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: false
+  sql:
+    init:
+      mode: never
+
+server:
+  # Render inyecta la variable PORT (normalmente 10000) y espera que la app
+  # escuche ahi. Si no existe, se usa 8080 (util para probar en local).
+  port: ${PORT:8080}
+  # Render termina el HTTPS en su proxy: sin esto los enlaces que genera la app
+  # saldrian como http:// y el login por sesion puede fallar tras el proxy.
+  forward-headers-strategy: framework
+
+smartkitchen:
+  # URL publica real del servicio en Render. Se usa para los enlaces de los
+  # correos de confirmacion y de reseteo de contrasena.
+  base-url: ${BASE_URL:http://localhost:8080}
+  admin:
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL:}

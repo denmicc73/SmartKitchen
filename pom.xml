@@ -56,6 +56,12 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <!-- Base de datos en produccion cuando se despliega en Render (perfil "render"). -->
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
