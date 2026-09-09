@@ -51,6 +51,12 @@ smartkitchen:
     # Remitente de los correos. Con Gmail debe ser tu propia direccion (o un
     # alias verificado), por eso por defecto usa el usuario SMTP.
     from: ${MAIL_FROM:${SMTP_USER:Smart Kitchen <no-reply@smart-kitchen.local>}}
+    brevo:
+      # Envio por API HTTP (Brevo). Necesario en hosts que bloquean el SMTP
+      # saliente, como el plan gratuito de Render. Si esta puesta, tiene
+      # prioridad sobre SMTP. El remitente (MAIL_FROM) debe estar verificado
+      # en la cuenta de Brevo.
+      api-key: ${BREVO_API_KEY:}
   uploads:
     # Carpeta absoluta (independiente del directorio de arranque) para no
     # perder de vista las imagenes segun desde donde se lance la app.

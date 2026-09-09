@@ -1,5 +1,6 @@
 package com.smartkitchen.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -10,21 +11,38 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * Envio de correo de la aplicacion.
+ * Envio de correo de la aplicacion (confirmacion de cuenta y reseteo de clave).
  *
- * <p>Envia de verdad por SMTP solo si hay servidor, usuario y contrasena
- * configurados ({@code spring.mail.host/username/password}). Si no, no falla:
- * escribe el asunto y el cuerpo del correo en el log para poder copiar el enlace
- * de confirmacion o de reseteo desde la consola (modo desarrollo).
+ * <p>Elige el canal de envio en este orden:
+ * <ol>
+ *   <li><b>API HTTP de Brevo</b> si hay {@code smartkitchen.mail.brevo.api-key}.
+ *       Es la unica opcion que funciona en hosts que bloquean el SMTP saliente,
+ *       como el plan gratuito de Render.</li>
+ *   <li><b>SMTP</b> si hay {@code spring.mail.host/username/password} (util en
+ *       local o en servidores propios).</li>
+ *   <li><b>Log</b> si no hay nada configurado: escribe el asunto y el cuerpo en
+ *       la consola para poder copiar el enlace a mano (modo desarrollo).</li>
+ * </ol>
  *
- * <p>Los correos se maquetan en HTML (con una alternativa en texto plano para
- * clientes que no renderizan HTML) mediante {@link #enviarAccion}.
+ * <p>Ningun metodo lanza excepcion: si el envio falla se registra y se devuelve
+ * {@code false}. Los correos se maquetan en HTML + texto plano en {@link #enviarAccion}.
  */
 @Service
 public class CorreoService {
 
     private static final Logger log = LoggerFactory.getLogger(CorreoService.class);
+    private static final String BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
     private final ObjectProvider<JavaMailSender> mailSender;
     private final String remitente;
@@ -32,25 +50,36 @@ public class CorreoService {
     private final String usuario;
     private final boolean smtpConfigurado;
 
+    private final String apiKey;
+    private final boolean apiConfigurada;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10)).build();
+    private final ObjectMapper json = new ObjectMapper();
+
     public CorreoService(ObjectProvider<JavaMailSender> mailSender,
                          @Value("${smartkitchen.mail.from:}") String remitente,
                          @Value("${spring.mail.host:}") String host,
                          @Value("${spring.mail.username:}") String usuario,
-                         @Value("${spring.mail.password:}") String password) {
+                         @Value("${spring.mail.password:}") String password,
+                         @Value("${smartkitchen.mail.brevo.api-key:}") String apiKey) {
         this.mailSender = mailSender;
         this.host = host == null ? "" : host.trim();
         this.usuario = usuario == null ? "" : usuario.trim();
         this.remitente = (remitente == null || remitente.isBlank()) ? this.usuario : remitente.trim();
         this.smtpConfigurado = !this.host.isBlank() && !this.usuario.isBlank()
                 && password != null && !password.isBlank();
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.apiConfigurada = !this.apiKey.isBlank();
     }
 
     @PostConstruct
     void avisarEstado() {
-        if (smtpConfigurado) {
-            log.info("Envio de correo ACTIVADO — servidor {}, remitente {}", host, remitente);
+        if (apiConfigurada) {
+            log.info("Envio de correo ACTIVADO — API HTTP (Brevo), remitente {}", remitente);
+        } else if (smtpConfigurado) {
+            log.info("Envio de correo ACTIVADO — SMTP {}, remitente {}", host, remitente);
         } else {
-            log.info("Envio de correo DESACTIVADO (sin SMTP_USER/SMTP_PASS). "
+            log.info("Envio de correo DESACTIVADO (sin BREVO_API_KEY ni SMTP_USER/SMTP_PASS). "
                     + "Los enlaces de confirmacion y reseteo se escribiran en el log.");
         }
     }
@@ -74,10 +103,13 @@ public class CorreoService {
      * log y devuelve {@code false}.
      */
     public boolean enviar(String destino, String asunto, String textoPlano, String html) {
+        if (apiConfigurada) {
+            return enviarPorApi(destino, asunto, textoPlano, html);
+        }
         JavaMailSender sender = smtpConfigurado ? mailSender.getIfAvailable() : null;
         if (sender == null) {
             log.info("""
-                    Correo NO enviado (SMTP sin configurar, modo desarrollo).
+                    Correo NO enviado (sin BREVO_API_KEY ni SMTP, modo desarrollo).
                     ------------------------------------------------------------
                     Para   : {}
                     Asunto : {}
@@ -115,6 +147,67 @@ public class CorreoService {
     /** Compatibilidad: envio en texto plano sin HTML. */
     public boolean enviar(String destino, String asunto, String cuerpo) {
         return enviar(destino, asunto, cuerpo, null);
+    }
+
+    // ------------------------------------------------------------ API HTTP (Brevo)
+
+    /**
+     * Envia el correo por la API transaccional de Brevo (HTTP). Se usa cuando el
+     * host bloquea el SMTP saliente (p. ej. el plan gratis de Render). El
+     * remitente debe ser una direccion verificada en la cuenta de Brevo; se toma
+     * de {@code smartkitchen.mail.from} (MAIL_FROM).
+     */
+    private boolean enviarPorApi(String destino, String asunto, String textoPlano, String html) {
+        try {
+            String emailRem = emailDe(remitente);
+            String nombreRem = remitente.contains("<")
+                    ? remitente.substring(0, remitente.indexOf('<')).trim()
+                    : "Smart Kitchen";
+            if (nombreRem.isBlank()) {
+                nombreRem = "Smart Kitchen";
+            }
+
+            Map<String, Object> cuerpo = new LinkedHashMap<>();
+            cuerpo.put("sender", Map.of("name", nombreRem, "email", emailRem));
+            cuerpo.put("to", List.of(Map.of("email", destino)));
+            cuerpo.put("subject", asunto);
+            cuerpo.put("textContent", textoPlano);
+            if (html != null && !html.isBlank()) {
+                cuerpo.put("htmlContent", html);
+            }
+
+            HttpRequest peticion = HttpRequest.newBuilder(URI.create(BREVO_ENDPOINT))
+                    .header("api-key", apiKey)
+                    .header("content-type", "application/json")
+                    .header("accept", "application/json")
+                    .timeout(Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            json.writeValueAsString(cuerpo), StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> respuesta = httpClient.send(
+                    peticion, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (respuesta.statusCode() / 100 == 2) {
+                log.info("Correo enviado (Brevo) a {} · {}", destino, asunto);
+                return true;
+            }
+            log.error("Brevo rechazo el correo a {} (HTTP {}): {}",
+                    destino, respuesta.statusCode(), respuesta.body());
+            return false;
+        } catch (Exception e) {
+            log.error("No se pudo enviar el correo (Brevo) a {}: {}", destino, e.getMessage());
+            return false;
+        }
+    }
+
+    /** Extrae la direccion de un remitente en formato "Nombre <correo>" o "correo". */
+    private static String emailDe(String remitente) {
+        int abre = remitente.indexOf('<');
+        int cierra = remitente.indexOf('>');
+        if (abre >= 0 && cierra > abre) {
+            return remitente.substring(abre + 1, cierra).trim();
+        }
+        return remitente.trim();
     }
 
     // ------------------------------------------------------------ plantillas

@@ -70,6 +70,10 @@
                     <div class="list__sub">
                         <span th:text="'@' + ${u.username}">@user</span>
                         <span th:if="${u.email != null}" th:text="' · ' + ${u.email}"></span>
+                        <span th:if="${!u.activo and !u.emailVerificado}"
+                              class="pill pill--warn" style="margin-left:.4rem">sin confirmar</span>
+                        <span th:if="${!u.activo and u.emailVerificado}"
+                              class="pill" style="margin-left:.4rem">desactivado</span>
                     </div>
                 </div>
                 <span class="pill" th:classappend="${u.admin} ? 'pill--ok'" th:text="${u.rol}">MIEMBRO</span>
