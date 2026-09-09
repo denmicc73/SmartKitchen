@@ -1,0 +1,16 @@
+# Mantener pequeno el contexto de build (Coolify / docker build).
+target/
+data/
+.git/
+.github/
+.idea/
+*.iml
+*.log
+.env
+.env.*
+!.env.example
+scripts/
+smtp.properties
+ia.properties
+README.md
+docker-compose*.yml

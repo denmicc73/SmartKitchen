@@ -55,6 +55,51 @@ Credenciales por defecto en desarrollo:
 
 MySQL queda dentro de la red interna de Docker. No se publica el puerto `3306`.
 
+## Despliegue Con Coolify (VPS + MySQL gestionado)
+
+[Coolify](https://coolify.io) despliega la app desde el `Dockerfile` del repo,
+inyecta las variables de entorno y pone HTTPS con su proxy (Traefik). La base
+de datos es un recurso aparte de Coolify, **no** el contenedor `mysql` del
+`docker-compose.yml` (ese solo se usa en el despliegue manual con Compose).
+
+1. **Crear la base de datos.** En el proyecto/entorno de Coolify:
+   *New Resource → Database → MySQL* (8.x). Al crearla, en su pagina apunta:
+   `Host` interno, `Port` (3306), `Database`, `Username`, `Password`.
+
+2. **Crear la aplicacion.** *New Resource → Application →* este repositorio,
+   *Build Pack:* **Dockerfile**. En *Ports Exposes* pon `8080`.
+
+3. **Variables de entorno** de la aplicacion (pestana *Environment Variables*):
+
+   | Variable | Valor |
+   |---|---|
+   | `SPRING_PROFILES_ACTIVE` | `prod` |
+   | `DB_HOST` | host interno de la base de datos de Coolify |
+   | `DB_PORT` | `3306` |
+   | `DB_NAME` | nombre de la base de datos |
+   | `DB_USER` | usuario de la base de datos |
+   | `DB_PASS` | contrasena de la base de datos |
+   | `ADMIN_USERNAME` | `admin` |
+   | `ADMIN_PASSWORD` | contrasena de 16+ caracteres (con esta entras) |
+   | `ADMIN_EMAIL` | tu correo (para "He olvidado mi contrasena") |
+   | `BASE_URL` | la URL publica que Coolify asigna a la app (con `https://`) |
+
+   Correo (opcional): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y
+   `MAIL_FROM`; o bien `BREVO_API_KEY` + `MAIL_FROM` si el VPS bloquea el SMTP.
+   IA (opcional): `ANTHROPIC_API_KEY`.
+
+4. **Desplegar.** Coolify construye el `Dockerfile` y arranca. La app crea el
+   esquema sola (`ddl-auto=update`) y el usuario `admin` en el primer arranque
+   (`Usuario admin inicial creado: admin` en los logs). Entra en la URL con
+   `admin` y `ADMIN_PASSWORD`.
+
+5. **Persistencia de imagenes.** Anade un *Persistent Storage* (volumen) a la
+   aplicacion montado en `/app/data/uploads` para que las fotos subidas
+   sobrevivan a los redepliegues.
+
+Actualizar: haz push a la rama; con *Auto Deploy* activado Coolify redespliega
+solo. Los datos viven en el recurso MySQL y en el volumen de `/app/data/uploads`.
+
 ## Despliegue En Un VPS (por IP, sin dominio)
 
 Requisitos: un VPS con Ubuntu/Debian y acceso SSH. Con 1 GB de RAM conviene
@@ -120,16 +165,17 @@ al `docker-compose.yml` con certificado automatico.
 
 ## Variables De Produccion
 
-El perfil `prod` exige estas variables. Si falta alguna, la app no debe arrancar correctamente:
+La **app** (perfil `prod`) necesita, o no arranca correctamente:
 
-- `DB_ROOT_PASS`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASS`
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
+- `DB_USER`, `DB_PASS` — credenciales de MySQL
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD` — usuario admin inicial
+- `DB_HOST`, `DB_PORT`, `DB_NAME` — opcionales (por defecto `mysql`, `3306`, `smartkitchen`)
 
 `ADMIN_PASSWORD` debe tener al menos 16 caracteres en produccion.
+
+El `docker-compose.yml` (despliegue manual con su propio contenedor MySQL)
+usa **ademas** `DB_ROOT_PASS` y `DB_NAME` para crear la base de datos. Con una
+base de datos gestionada (p. ej. la de Coolify) esas dos no hacen falta.
 
 ## Seguridad
 
